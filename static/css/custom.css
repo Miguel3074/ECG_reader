@@ -1,0 +1,53 @@
+/* Custom styles for ECG Analyzer */
+
+/* Feature icons */
+.feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 1rem;
+    color: var(--bs-info);
+    border-radius: 50%;
+    border: 2px solid var(--bs-info);
+    padding: 1rem;
+}
+
+/* Form file input styling */
+.form-control:focus {
+    border-color: var(--bs-info);
+    box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25);
+}
+
+/* Card styling */
+.card {
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Footer styling */
+.footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Loading animation during analysis */
+.loading-spinner {
+    display: none;
+    width: 3rem;
+    height: 3rem;
+    margin: 2rem auto;
+}
+
+/* Results page visualization */
+.visualization-container {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 2rem;
+}

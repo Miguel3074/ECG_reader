@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECG Analysis Results</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">ECG Analyzer</a>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <div class="row">
+            <div class="col-lg-10 mx-auto">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                {% if results and not results.error %}
+                    <div class="card bg-dark mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0">ECG Analysis Results</h3>
+                            <a href="/" class="btn btn-outline-primary">Analyze Another ECG</a>
+                        </div>
+                        <div class="card-body">
+                            {% if results.visualization %}
+                                <div class="text-center mb-4">
+                                    <img src="data:image/png;base64,{{ results.visualization }}" alt="ECG Waveform Analysis" class="img-fluid rounded">
+                                </div>
+                            {% endif %}
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">Cardiac Metrics</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-dark">
+                                                <tbody>
+                                                    <tr>
+                                                        <th scope="row">Heart Rate</th>
+                                                        <td>{{ results.heart_rate if results.heart_rate else 'Could not determine' }} {% if results.heart_rate %}BPM{% endif %}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row">Rhythm Analysis</th>
+                                                        <td>{{ results.rhythm_analysis }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row">P Wave Present</th>
+                                                        <td>{{ results.p_wave_present }}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">Interval Measurements</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-dark">
+                                                <tbody>
+                                                    <tr>
+                                                        <th scope="row">QRS Duration</th>
+                                                        <td>{{ results.qrs_duration }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row">QT Interval</th>
+                                                        <td>{{ results.qt_interval }}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-info">
+                                        <h5 class="alert-heading">Disclaimer</h5>
+                                        <p class="mb-0">This analysis is provided for educational purposes only and should not be used for clinical decision-making. Always consult a healthcare professional for medical advice.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% elif results and results.error %}
+                    <div class="card bg-dark">
+                        <div class="card-header">
+                            <h3 class="mb-0">Analysis Error</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-danger">
+                                <h5 class="alert-heading">Error Processing ECG Image</h5>
+                                <p>{{ results.error }}</p>
+                                <hr>
+                                <p class="mb-0">Please try again with a different ECG image.</p>
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="/" class="btn btn-primary">Try Again</a>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="card bg-dark">
+                        <div class="card-body">
+                            <div class="alert alert-warning">
+                                <p>No analysis results found. Please upload an ECG image.</p>
+                            </div>
+                            <div class="text-center">
+                                <a href="/" class="btn btn-primary">Upload ECG Image</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-auto py-3 bg-dark">
+        <div class="container text-center">
+            <span class="text-muted">ECG Analyzer | For educational purposes only</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
