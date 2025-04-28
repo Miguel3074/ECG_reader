@@ -1,86 +1,203 @@
 <!doctype html>
-<html lang="pt-br" data-bs-theme="dark"> <head>
-  <meta charset="utf-8">
-  <title>Resultados da Análise ECG</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}"> <style>
-    /* Estilos básicos adicionais */
-    body { padding-top: 20px; }
-    .card { margin-bottom: 20px; }
-    .explanation-card { border-left: 5px solid #0dcaf0; } /* Ciano para destaque */
-  </style>
+<html lang="pt-br" data-bs-theme="dark">
+
+<head>
+    <meta charset="utf-8">
+    <title>Delimite as Derivações do ECG</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <style>
+        body { padding-top: 20px; }
+        .card { margin-bottom: 20px; }
+        .explanation-card { border-left: 5px solid #0dcaf0; }
+        #ecgContainer { position: relative; }
+        #ecgImage { width: 100%; display: block; background-color: #212529; border: 1px solid #444; }
+        .drag-line {
+            position: absolute;
+            background-color: red;
+            opacity: 0.7;
+            cursor: grab;
+        }
+        .vertical-line { width: 2px; height: 100%; top: 0; }
+        .horizontal-line { height: 2px; width: 100%; left: 0; }
+        #controls { margin-top: 10px; }
+    </style>
 </head>
-<body> <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand" href="/">ECG Analyzer</a>
-    </div>
-</nav>
 
-<div class="container py-3"> <h1 class="mb-4">Resultados da Análise ECG</h1>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">ECG Analyzer</a>
+        </div>
+    </nav>
 
-  {% if results and results.error %}
-    <div class="alert alert-danger">
-      <strong>Erro:</strong> {{ results.error }}
-    </div>
-  {% elif results %}
-    <div class="row">
-      <div class="col-md-6">
-        <div class="card bg-secondary mb-3"> <div class="card-header"><h4>Sumário</h4></div>
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item bg-secondary"> <strong>Frequência Cardíaca:</strong>
-                  {{ results.heart_rate if results.heart_rate is not none and results.heart_rate != 'Não detectado' else 'Não detectado' }}
-                  {% if results.heart_rate is not none and results.heart_rate != 'Não detectado' %} BPM {% endif %}
-              </li>
-              <li class="list-group-item bg-secondary">
-                  <strong>Análise do Ritmo:</strong> {{ results.rhythm_analysis | default('Indeterminado') }}
-              </li>
-              </ul>
+    <div class="container py-3">
+        <h1 class="mb-4">Delimite as Derivações do ECG</h1>
+
+        <div class="card bg-secondary">
+            <div id="ecgContainer" class="card-body text-center">
+                <img id="ecgImage" src="{{ url_for('static', filename=original_image_path) }}" alt="ECG Original">
+            </div>
         </div>
 
-        {% if results.explanation %}
-         <div class="card bg-secondary mb-3 explanation-card">
-            <div class="card-header"><h4>Interpretação Possível</h4></div>
-            <div class="card-body">
-                <p><strong>Descrição:</strong><br> {{ results.explanation.description | default('N/A') }}</p>
-                <p><strong>Causas Possíveis:</strong><br> {{ results.explanation.possible_causes | default('N/A') }}</p>
-                <p><strong>Sugestões:</strong><br> {{ results.explanation.suggestions | default('N/A') }}</p>
-                <p class="text-warning small mt-3">Lembrete: Esta análise é automatizada e apenas para fins educacionais. Consulte um profissional de saúde para diagnósticos.</p>
-            </div>
-         </div>
+        <div id="controls">
+            <button class="btn btn-primary" onclick="addVerticalLine()">Adicionar Linha Vertical</button>
+            <button class="btn btn-primary" onclick="addHorizontalLine()">Adicionar Linha Horizontal</button>
+            <button class="btn btn-warning" onclick="clearLines()">Limpar Linhas</button>
+            <button class="btn btn-success" onclick="sendBoundaries()">Analisar Delimitações</button>
+            <p id="boundaryCoordinates"></p>
+        </div>
+
+        {% if results or main_analysis %}
+        <h2 class="mt-4">Resultados da Análise</h2>
         {% endif %}
 
-      </div>
-      <div class="col-md-6">
-        {% if results.visualization %}
-          <div class="card bg-secondary">
-              <div class="card-header"><h4>Visualização da Derivação Analisada</h4></div>
-              <div class="card-body text-center"> <img src="data:image/png;base64,{{ results.visualization }}" class="img-fluid" alt="ECG Visualization" style="background-color: #212529; border: 1px solid #444;"> </div>
-          </div>
-        {% else %}
-          <div class="alert alert-info">Visualização não disponível.</div>
-        {% endif %}
-      </div>
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Analisar Outro ECG</a>
+        </div>
+
     </div>
 
+    <footer class="footer mt-auto py-3 bg-dark">
+        <div class="container text-center">
+            <span class="text-muted">ECG Analyzer | Apenas para fins educacionais</span>
+        </div>
+    </footer>
 
-  {% else %}
-    <div class="alert alert-warning">
-      Nenhum resultado encontrado ou os dados estão corrompidos.
-    </div>
-  {% endif %}
+    <script>
+        const ecgContainer = document.getElementById('ecgContainer');
+        const ecgImage = document.getElementById('ecgImage');
+        const boundaryCoordinatesElement = document.getElementById('boundaryCoordinates');
+        const boundaries = { vertical: [], horizontal: [] };
+        let isDragging = false;
+        let currentLine = null;
+        let offsetX, offsetY;
 
-  <div class="mt-4 text-center"> <a href="{{ url_for('index') }}" class="btn btn-primary">Analisar Outro ECG</a>
-  </div>
+        function addLine(orientation) {
+            const line = document.createElement('div');
+            line.classList.add('drag-line', orientation === 'vertical' ? 'vertical-line' : 'horizontal-line');
+            if (orientation === 'vertical') {
+                line.style.left = ecgContainer.offsetWidth / 2 + 'px';
+                boundaries.vertical.push(parseInt(line.style.left));
+            } else {
+                line.style.top = ecgContainer.offsetHeight / 2 + 'px';
+                boundaries.horizontal.push(parseInt(line.style.top));
+            }
+            ecgContainer.appendChild(line);
 
-</div>
+            line.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                currentLine = e.target;
+                offsetX = e.clientX - currentLine.getBoundingClientRect().left;
+                offsetY = e.clientY - currentLine.getBoundingClientRect().top;
+                currentLine.style.cursor = 'grabbing';
+            });
 
-<footer class="footer mt-auto py-3 bg-dark">
-    <div class="container text-center">
-        <span class="text-muted">ECG Analyzer | Apenas para fins educacionais</span>
-    </div>
-</footer>
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging || !currentLine) return;
+                if (currentLine.classList.contains('vertical-line')) {
+                    let newX = e.clientX - ecgContainer.getBoundingClientRect().left - offsetX;
+                    newX = Math.max(0, Math.min(newX, ecgContainer.offsetWidth));
+                    currentLine.style.left = newX + 'px';
+                    const index = boundaries.vertical.findIndex(x => Math.abs(x - parseInt(currentLine.style.left)) < 5);
+                    if (index !== -1) {
+                        boundaries.vertical[index] = parseInt(currentLine.style.left);
+                    } else if (!boundaries.vertical.includes(parseInt(currentLine.style.left))) {
+                        boundaries.vertical.push(parseInt(currentLine.style.left));
+                    }
+                } else if (currentLine.classList.contains('horizontal-line')) {
+                    let newY = e.clientY - ecgContainer.getBoundingClientRect().top - offsetY;
+                    newY = Math.max(0, Math.min(newY, ecgContainer.offsetHeight));
+                    currentLine.style.top = newY + 'px';
+                    const index = boundaries.horizontal.findIndex(y => Math.abs(y - parseInt(currentLine.style.top)) < 5);
+                    if (index !== -1) {
+                        boundaries.horizontal[index] = parseInt(currentLine.style.top);
+                    } else if (!boundaries.horizontal.includes(parseInt(currentLine.style.top))) {
+                        boundaries.horizontal.push(parseInt(currentLine.style.top));
+                    }
+                }
+                updateBoundaryCoordinates();
+            });
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                currentLine = null;
+                document.querySelectorAll('.drag-line').forEach(line => line.style.cursor = 'grab');
+            });
+
+            updateBoundaryCoordinates();
+        }
+
+        function addVerticalLine() {
+            addLine('vertical');
+        }
+
+        function addHorizontalLine() {
+            addLine('horizontal');
+        }
+
+        function clearLines() {
+            document.querySelectorAll('.drag-line').forEach(line => line.remove());
+            boundaries.vertical = [];
+            boundaries.horizontal = [];
+            updateBoundaryCoordinates();
+        }
+
+        function updateBoundaryCoordinates() {
+            boundaryCoordinatesElement.innerText = 'Linhas Verticais: ' + boundaries.vertical.sort((a, b) => a - b).join(', ') +
+                                                    '\nLinhas Horizontais: ' + boundaries.horizontal.sort((a, b) => a - b).join(', ');
+        }
+
+        function sendBoundaries() {
+            const sortedVertical = boundaries.vertical.sort((a, b) => a - b);
+            const sortedHorizontal = boundaries.horizontal.sort((a, b) => a - b);
+
+            if (sortedVertical.length < 3) { // Mínimo para 4 colunas (3 linhas de separação)
+                alert('Por favor, adicione pelo menos 3 linhas verticais para delimitar as derivações horizontalmente.');
+                return;
+            }
+            if (sortedHorizontal.length < 2) { // Mínimo para 3 linhas (2 linhas de separação)
+                alert('Por favor, adicione pelo menos 2 linhas horizontais para delimitar as linhas de derivações verticalmente.');
+                return;
+            }
+
+            const segmentation = { vertical: sortedVertical, horizontal: sortedHorizontal };
+
+            fetch('/analyze_segmented', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(segmentation),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Resposta do servidor:', data);
+                // Atualizar a página com os resultados da análise segmentada (como no exemplo anterior)
+                let resultsHTML = '<h2 class="mt-4">Resultados da Análise Segmentada</h2>';
+                if (data.results) {
+                    for (const derivation in data.results) {
+                        resultsHTML += `<div class="card bg-secondary mb-3"><div class="card-header"><h4>${derivation}</h4></div><ul class="list-group list-group-flush">`;
+                        if (data.results[derivation].frequencia_cardiaca) {
+                            resultsHTML += `<li class="list-group-item bg-secondary"><strong>Frequência Cardíaca:</strong> ${data.results[derivation].frequencia_cardiaca}</li>`;
+                        }
+                        if (data.results[derivation].ritmo_sinusal) {
+                            resultsHTML += `<li class="list-group-item bg-secondary"><strong>Análise do Ritmo:</strong> ${data.results[derivation].ritmo_sinusal}</li>`;
+                        }
+                        resultsHTML += `</ul></div>`;
+                    }
+                    document.querySelector('.container').innerHTML += resultsHTML;
+                } else if (data.error) {
+                    alert('Erro na análise segmentada: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao enviar as delimitações:', error);
+                alert('Erro ao enviar as delimitações para análise.');
+            });
+        }
+    </script>
 </body>
+
 </html>
