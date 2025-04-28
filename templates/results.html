@@ -79,12 +79,17 @@
             line.classList.add('drag-line', orientation === 'vertical' ? 'vertical-line' : 'horizontal-line');
             if (orientation === 'vertical') {
                 line.style.left = ecgContainer.offsetWidth / 2 + 'px';
-                boundaries.vertical.push(parseInt(line.style.left));
+                const index = boundaries.vertical.push(parseInt(line.style.left)) - 1;
+                line.dataset.index = index; // Adiciona um atributo data-index
+                line.dataset.orientation = 'vertical';
             } else {
                 line.style.top = ecgContainer.offsetHeight / 2 + 'px';
-                boundaries.horizontal.push(parseInt(line.style.top));
+                const index = boundaries.horizontal.push(parseInt(line.style.top)) - 1;
+                line.dataset.index = index; // Adiciona um atributo data-index
+                line.dataset.orientation = 'horizontal';
             }
             ecgContainer.appendChild(line);
+            updateBoundaryCoordinates();
 
             line.addEventListener('mousedown', (e) => {
                 isDragging = true;
@@ -96,25 +101,22 @@
 
             document.addEventListener('mousemove', (e) => {
                 if (!isDragging || !currentLine) return;
-                if (currentLine.classList.contains('vertical-line')) {
+                const orientation = currentLine.dataset.orientation;
+                const index = parseInt(currentLine.dataset.index);
+
+                if (orientation === 'vertical') {
                     let newX = e.clientX - ecgContainer.getBoundingClientRect().left - offsetX;
                     newX = Math.max(0, Math.min(newX, ecgContainer.offsetWidth));
                     currentLine.style.left = newX + 'px';
-                    const index = boundaries.vertical.findIndex(x => Math.abs(x - parseInt(currentLine.style.left)) < 5);
-                    if (index !== -1) {
-                        boundaries.vertical[index] = parseInt(currentLine.style.left);
-                    } else if (!boundaries.vertical.includes(parseInt(currentLine.style.left))) {
-                        boundaries.vertical.push(parseInt(currentLine.style.left));
+                    if (index !== -1 && index < boundaries.vertical.length) {
+                        boundaries.vertical[index] = parseInt(newX);
                     }
-                } else if (currentLine.classList.contains('horizontal-line')) {
+                } else if (orientation === 'horizontal') {
                     let newY = e.clientY - ecgContainer.getBoundingClientRect().top - offsetY;
                     newY = Math.max(0, Math.min(newY, ecgContainer.offsetHeight));
                     currentLine.style.top = newY + 'px';
-                    const index = boundaries.horizontal.findIndex(y => Math.abs(y - parseInt(currentLine.style.top)) < 5);
-                    if (index !== -1) {
-                        boundaries.horizontal[index] = parseInt(currentLine.style.top);
-                    } else if (!boundaries.horizontal.includes(parseInt(currentLine.style.top))) {
-                        boundaries.horizontal.push(parseInt(currentLine.style.top));
+                    if (index !== -1 && index < boundaries.horizontal.length) {
+                        boundaries.horizontal[index] = parseInt(newY);
                     }
                 }
                 updateBoundaryCoordinates();
@@ -125,8 +127,6 @@
                 currentLine = null;
                 document.querySelectorAll('.drag-line').forEach(line => line.style.cursor = 'grab');
             });
-
-            updateBoundaryCoordinates();
         }
 
         function addVerticalLine() {
@@ -153,16 +153,20 @@
             const sortedVertical = boundaries.vertical.sort((a, b) => a - b);
             const sortedHorizontal = boundaries.horizontal.sort((a, b) => a - b);
 
-            if (sortedVertical.length < 3) { // Mínimo para 4 colunas (3 linhas de separação)
+            if (sortedVertical.length < 3) {
                 alert('Por favor, adicione pelo menos 3 linhas verticais para delimitar as derivações horizontalmente.');
                 return;
             }
-            if (sortedHorizontal.length < 2) { // Mínimo para 3 linhas (2 linhas de separação)
+            if (sortedHorizontal.length < 2) {
                 alert('Por favor, adicione pelo menos 2 linhas horizontais para delimitar as linhas de derivações verticalmente.');
                 return;
             }
 
-            const segmentation = { vertical: sortedVertical, horizontal: sortedHorizontal };
+            const segmentation = {
+                vertical: sortedVertical,
+                horizontal: sortedHorizontal,
+                csv_filename: "{{ csv_download_path.split('/')[-1] }}"
+            };
 
             fetch('/analyze_segmented', {
                 method: 'POST',
