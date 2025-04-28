@@ -1,138 +1,86 @@
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECG Analysis Results</title>
-    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+<!doctype html>
+<html lang="pt-br" data-bs-theme="dark"> <head>
+  <meta charset="utf-8">
+  <title>Resultados da Análise ECG</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}"> <style>
+    /* Estilos básicos adicionais */
+    body { padding-top: 20px; }
+    .card { margin-bottom: 20px; }
+    .explanation-card { border-left: 5px solid #0dcaf0; } /* Ciano para destaque */
+  </style>
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/">ECG Analyzer</a>
+<body> <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/">ECG Analyzer</a>
+    </div>
+</nav>
+
+<div class="container py-3"> <h1 class="mb-4">Resultados da Análise ECG</h1>
+
+  {% if results and results.error %}
+    <div class="alert alert-danger">
+      <strong>Erro:</strong> {{ results.error }}
+    </div>
+  {% elif results %}
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card bg-secondary mb-3"> <div class="card-header"><h4>Sumário</h4></div>
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item bg-secondary"> <strong>Frequência Cardíaca:</strong>
+                  {{ results.heart_rate if results.heart_rate is not none and results.heart_rate != 'Não detectado' else 'Não detectado' }}
+                  {% if results.heart_rate is not none and results.heart_rate != 'Não detectado' %} BPM {% endif %}
+              </li>
+              <li class="list-group-item bg-secondary">
+                  <strong>Análise do Ritmo:</strong> {{ results.rhythm_analysis | default('Indeterminado') }}
+              </li>
+              </ul>
         </div>
-    </nav>
 
-    <div class="container my-4">
-        <div class="row">
-            <div class="col-lg-10 mx-auto">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-
-                {% if results and not results.error %}
-                    <div class="card bg-dark mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h3 class="mb-0">ECG Analysis Results</h3>
-                            <a href="/" class="btn btn-outline-primary">Analyze Another ECG</a>
-                        </div>
-                        <div class="card-body">
-                            {% if results.visualization %}
-                                <div class="text-center mb-4">
-                                    <img src="data:image/png;base64,{{ results.visualization }}" alt="ECG Waveform Analysis" class="img-fluid rounded">
-                                </div>
-                            {% endif %}
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="card mb-3">
-                                        <div class="card-header">
-                                            <h5 class="mb-0">Cardiac Metrics</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <table class="table table-dark">
-                                                <tbody>
-                                                    <tr>
-                                                        <th scope="row">Heart Rate</th>
-                                                        <td>{{ results.heart_rate if results.heart_rate else 'Could not determine' }} {% if results.heart_rate %}BPM{% endif %}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th scope="row">Rhythm Analysis</th>
-                                                        <td>{{ results.rhythm_analysis }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th scope="row">P Wave Present</th>
-                                                        <td>{{ results.p_wave_present }}</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card mb-3">
-                                        <div class="card-header">
-                                            <h5 class="mb-0">Interval Measurements</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <table class="table table-dark">
-                                                <tbody>
-                                                    <tr>
-                                                        <th scope="row">QRS Duration</th>
-                                                        <td>{{ results.qrs_duration }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th scope="row">QT Interval</th>
-                                                        <td>{{ results.qt_interval }}</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                    <div class="alert alert-info">
-                                        <h5 class="alert-heading">Disclaimer</h5>
-                                        <p class="mb-0">This analysis is provided for educational purposes only and should not be used for clinical decision-making. Always consult a healthcare professional for medical advice.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% elif results and results.error %}
-                    <div class="card bg-dark">
-                        <div class="card-header">
-                            <h3 class="mb-0">Analysis Error</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-danger">
-                                <h5 class="alert-heading">Error Processing ECG Image</h5>
-                                <p>{{ results.error }}</p>
-                                <hr>
-                                <p class="mb-0">Please try again with a different ECG image.</p>
-                            </div>
-                            <div class="text-center mt-3">
-                                <a href="/" class="btn btn-primary">Try Again</a>
-                            </div>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="card bg-dark">
-                        <div class="card-body">
-                            <div class="alert alert-warning">
-                                <p>No analysis results found. Please upload an ECG image.</p>
-                            </div>
-                            <div class="text-center">
-                                <a href="/" class="btn btn-primary">Upload ECG Image</a>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
+        {% if results.explanation %}
+         <div class="card bg-secondary mb-3 explanation-card">
+            <div class="card-header"><h4>Interpretação Possível</h4></div>
+            <div class="card-body">
+                <p><strong>Descrição:</strong><br> {{ results.explanation.description | default('N/A') }}</p>
+                <p><strong>Causas Possíveis:</strong><br> {{ results.explanation.possible_causes | default('N/A') }}</p>
+                <p><strong>Sugestões:</strong><br> {{ results.explanation.suggestions | default('N/A') }}</p>
+                <p class="text-warning small mt-3">Lembrete: Esta análise é automatizada e apenas para fins educacionais. Consulte um profissional de saúde para diagnósticos.</p>
             </div>
-        </div>
+         </div>
+        {% endif %}
+
+      </div>
+      <div class="col-md-6">
+        {% if results.visualization %}
+          <div class="card bg-secondary">
+              <div class="card-header"><h4>Visualização da Derivação Analisada</h4></div>
+              <div class="card-body text-center"> <img src="data:image/png;base64,{{ results.visualization }}" class="img-fluid" alt="ECG Visualization" style="background-color: #212529; border: 1px solid #444;"> </div>
+          </div>
+        {% else %}
+          <div class="alert alert-info">Visualização não disponível.</div>
+        {% endif %}
+      </div>
     </div>
 
-    <footer class="footer mt-auto py-3 bg-dark">
-        <div class="container text-center">
-            <span class="text-muted">ECG Analyzer | For educational purposes only</span>
-        </div>
-    </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% else %}
+    <div class="alert alert-warning">
+      Nenhum resultado encontrado ou os dados estão corrompidos.
+    </div>
+  {% endif %}
+
+  <div class="mt-4 text-center"> <a href="{{ url_for('index') }}" class="btn btn-primary">Analisar Outro ECG</a>
+  </div>
+
+</div>
+
+<footer class="footer mt-auto py-3 bg-dark">
+    <div class="container text-center">
+        <span class="text-muted">ECG Analyzer | Apenas para fins educacionais</span>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
